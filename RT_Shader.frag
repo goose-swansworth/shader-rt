@@ -4,8 +4,11 @@ uniform float winWidth;
 uniform float winHeight;
 float eyeDist = 1200;
 vec3 light = vec3(200, 300, -800);
-
 out vec4 fragOutputColor;
+const int MAX_DEPTH = 5;
+const int STACK_LIMIT = 100;
+int stack_index = -1;
+
 
 struct Ray
 {
@@ -14,9 +17,10 @@ struct Ray
 	float t;
 	int type;
 	int index;
+	int step;
 };	
 
-Ray ray = Ray( vec3(0), vec3(0), -1, 0, 0 );
+Ray ray = Ray( vec3(0), vec3(0), -1, 0, 0, 0);
 
 vec3 hit(Ray ray)
 {
@@ -38,6 +42,21 @@ Sphere spheres[3] =
    { {100, 120, -1400},   80,  {1, 0, 0} },  
    { {-100, -150, -1400}, 50,  {0, 1, 0} }
 };
+
+Ray ray_stack[STACK_LIMIT];
+
+void stack_push(Ray ray) {
+	if (stack_index + 1 < STACK_LIMIT) {
+		stack_index++;
+		ray_stack[stack_index] = ray;
+	}
+}
+
+Ray stack_pop() {
+	Ray ray = ray_stack[stack_index];
+	stack_index--;
+	return ray;
+}
 
 
 void sphereIntersection(inout Ray ray, int i)
@@ -105,28 +124,40 @@ vec3 lightingCol(vec3 posn, vec3 normal, vec3 lightVec, vec3 color)
 	}
 }
 
-vec3 trace(Ray ray)
-{
-   closestPt(ray);
-   if (ray.t < 0) return vec3(0, 1, 1);  //background color
-   
-   vec3 color;
-   vec3 posn = hit(ray);
-   vec3 lightVec = light - posn;
-   float lightDist = length(lightVec);
-   lightVec = normalize(lightVec);
-   vec3 posnStep = posn + 0.5 * lightVec;   //ray stepping
-   Ray shadowRay = Ray( posnStep, lightVec, -1, 0, 0 );
-   closestPt(shadowRay);
-   color = spheres[ray.index].col;
-   if (shadowRay.t > 0 && shadowRay.t < lightDist) color = 0.2 * color;
-   else 
-   {
-      vec3 normal = posn - spheres[ray.index].cen;
-	  normal = normalize(normal);
-      color = lightingCol(posn, normal, lightVec, color);
-   }
-   return color;
+vec3 lighting(vec3 posn) {
+	vec3 color;
+	vec3 lightVec = light - posn;
+	float lightDist = length(lightVec);
+	lightVec = normalize(lightVec);
+	vec3 posnStep = posn + 0.5 * lightVec;   //ray stepping
+	Ray shadowRay = Ray( posnStep, lightVec, -1, 0, 0, 0);
+	closestPt(shadowRay);
+	color = spheres[ray.index].col;
+	if (shadowRay.t > 0 && shadowRay.t < lightDist) {
+		color = 0.2 * color;
+	} else {
+		vec3 normal = posn - spheres[ray.index].cen;
+		normal = normalize(normal);
+		color = lightingCol(posn, normal, lightVec, color);
+	}
+	return color;
+}
+
+vec3 trace(Ray iray) {
+	vec3 color;
+	stack_push(iray);
+	while (stack_index > -1) {
+		ray = stack_pop();
+		closestPt(ray);
+		if (ray.t < 0) {
+			color = vec3(1, 1, 1);
+		} else {
+			vec3 posn = hit(ray);
+			color = lighting(posn);
+			
+		}
+	}
+	return color;
 }
 
 void main()
