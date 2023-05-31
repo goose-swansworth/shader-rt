@@ -10,6 +10,7 @@ const int STACK_LIMIT = 100;
 const uint SPHERE = 0;
 const uint PLANE = 1;
 int stack_index = -1;
+const int SQUARE_WIDTH = 30;
 
 
 struct Ray
@@ -49,11 +50,11 @@ vec3 rgb(float r, float g, float b) {
 
 
 Sphere spheres[1] = {
-   { {0,  0, -1700}, 150, rgb(112, 128, 144)}
+   { {0,  0, -1700}, 150, rgb(255, 69, 0)}
 };
 
 Plane planes[1] = {
-	{{0, -150, 0}, {0, 1, 0}, rgb(107, 142, 35)}
+	{{0, -150, 0}, {0, 1, 0}, rgb(119,136,153)}
 };
 
 Ray ray_stack[STACK_LIMIT];
@@ -175,6 +176,22 @@ vec3 get_normal(int type, int index, vec3 posn) {
 	return normal;
 }
 
+vec3 check_floor(vec3 postion) {
+	int divx = int(abs(postion.x) / SQUARE_WIDTH);
+	int divz = int(abs(postion.z) / SQUARE_WIDTH);
+	int i = divx % 2;
+	if (postion.x < 0) {
+		i = (i + 1) % 2;
+	}
+	int j = divz % 2;
+	if (i != j) {
+		return rgb(105,105,105);
+	} else {
+		return rgb(169,169,169);
+	}
+
+}
+
 vec3 lighting(vec3 posn) {
 	vec3 color;
 	vec3 lightVec = light - posn;
@@ -186,7 +203,7 @@ vec3 lighting(vec3 posn) {
 	if (ray.type == 0) {
 		color = spheres[ray.index].col;
 	} else {
-		color = planes[ray.index].col;
+		color = check_floor(posn);
 	}
 	
 	if (shadowRay.t > 0 && shadowRay.t < lightDist) {

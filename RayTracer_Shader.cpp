@@ -14,7 +14,7 @@ using namespace std;
 
 GLuint vao;
 GLuint theProgram;
-const int winWidth = 600, winHeight = 600;
+const int winWidth = 700, winHeight = 450;
 
 GLuint loadShader(GLenum shaderType, string filename)
 {
